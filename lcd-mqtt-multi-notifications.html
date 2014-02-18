@@ -1,0 +1,451 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<meta name="viewport" content="width=1024">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="apple-touch-icon" href="/temperature/apple-touch-icon.png"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+
+<link rel="stylesheet" href="css/lcd.css" type="text/css" charset="utf-8" />  
+
+<title>Home Dashboard</title>
+ 
+<head>
+    <script src="vendor/mqttws31.js" type="text/javascript"></script>
+
+    <script type='text/javascript' src='vendor/lcd.js'></script>
+    <script type="text/javascript">
+    /* 
+	by @bordignon on twitter
+	JAN 2014
+
+    using LCD display from
+	
+	example;
+	http://harmoniccode.blogspot.com.au/search/label/enzo
+
+	code;
+	https://bitbucket.org/hansolo/enzojs/src
+	
+	*/
+
+	var MQTTbroker = 'mqtt.localdomain';
+	var MQTTport = 8000;
+
+//setup LCD display variables
+	var Outside1LCD,MasterLCD,LoungeLCD,KitchenLCD,LexieLCD
+
+//mqtt broker setup
+	var client = new Messaging.Client(MQTTbroker, MQTTport,
+				"myclientid_" + parseInt(Math.random() * 100, 10));
+	client.onMessageArrived = onMessageArrived;
+	client.onConnectionLost = onConnectionLost;
+	//connect to broker is at the bottom of the init() function !!!!
+	
+
+//mqtt connecton options including the mqtt broker subscriptions
+	var options = {
+		timeout: 3,
+		onSuccess: function () {
+			console.log("mqtt connected");
+			moveText('MQTT', 'Connected')
+			// Connection succeeded; subscribe to our topics
+			client.subscribe('/house/weather/+/temperature/current', {qos: 1});
+			client.subscribe('/house/xbmc/all/messages', {qos: 1});
+			client.subscribe('/house/people/+/status', {qos: 1});
+			client.subscribe('/house/all/alarm/status', {qos: 1});
+			client.subscribe('/software/cfa2mqtt/rating/central/#', {qos: 1});
+			client.subscribe('/software/bom_forecast2mqtt/forecast/#', {qos: 1});
+			//dislay msg on lcd that we are connected and also redraw the LCDs
+		    setTimeout(function() {Outside1LCD.setLowerRightText('CON')}, 200);
+		    setTimeout(function() {MasterLCD.setLowerRightText('CON')}, 200);
+		    setTimeout(function() {LoungeLCD.setLowerRightText('CON')}, 200);
+		    setTimeout(function() {KitchenLCD.setLowerRightText('CON')}, 200);
+		    setTimeout(function() {LexieLCD.setLowerRightText('CON')}, 200);
+
+		},
+		onFailure: function (message) {
+			console.log("Connection failed, will wait 20 seconds then try again, ERROR: " + message.errorMessage);
+			moveText('MQTT', 'Connection failed: '+message.errorMessage);
+			zeroLCDs();
+			//window.setTimeout(init,20000); //wait 20seconds before trying to connect again.
+			window.setTimeout(location.reload(),20000); //wait 20seconds before trying to connect again.
+		}
+	};
+
+
+	function onConnectionLost(responseObject) {
+		console.log("connection lost: " + responseObject.errorMessage);
+		moveText('MQTT', 'Connection Lost: + '+responseObject.errorMessage)
+		zeroLCDs();
+		window.setTimeout(location.reload(),20000);
+        //window.setTimeout(init,20000); //wait 20seconds before trying to connect again.
+	};
+
+//what is done when a message arrives from the broker
+	function onMessageArrived(message) {
+		//console.log(message.destinationName, '',message.payloadString);
+		//deal with temperature messages
+		//outside1
+		if (message.destinationName=="/house/weather/outside1/temperature/current") {
+			hotorcold(message.payloadString,Outside1LCD);
+			setTimeout(function() {Outside1LCD.setValue(message.payloadString)}, 200);
+		};
+		//master BDR
+		if (message.destinationName=="/house/weather/master/temperature/current") {
+			hotorcold(message.payloadString,MasterLCD);
+			setTimeout(function() {MasterLCD.setValue(message.payloadString)}, 200);
+		};
+		//lounge
+		if (message.destinationName=="/house/weather/lounge/temperature/current") {
+			hotorcold(message.payloadString,LoungeLCD);
+			setTimeout(function() {LoungeLCD.setValue(message.payloadString)}, 200);
+		};
+		//kitchen 
+		if (message.destinationName=="/house/weather/kitchen/temperature/current") {
+			hotorcold(message.payloadString,KitchenLCD);
+			setTimeout(function() {KitchenLCD.setValue(message.payloadString)}, 200);
+		};
+		//lexie's BDR
+		if (message.destinationName=="/house/weather/lexie/temperature/current") {
+			hotorcold(message.payloadString,LexieLCD);
+			setTimeout(function() {LexieLCD.setValue(message.payloadString)}, 200);
+		};
+
+		//deal with alarm messages and people status
+		//alarm
+		if (message.destinationName=="/house/all/alarm/status") {
+			setTimeout(function() {document.getElementById('idAlaramStatus').innerHTML = message.payloadString}, 200);
+		};
+		//matts location
+		if (message.destinationName=="/house/people/matt/status") {
+			setTimeout(function() {document.getElementById('idMattStatus').innerHTML = message.payloadString}, 200);
+		};
+		//jos location
+		if (message.destinationName=="/house/people/jo/status") {
+			setTimeout(function() {document.getElementById('idJoStatus').innerHTML = message.payloadString}, 200);
+		};
+
+		//deal with cfa rating and weather forecast
+		//cfa
+		if (message.destinationName=="/software/cfa2mqtt/rating/central/rating" ) {
+			setTimeout(function() {document.getElementById('idFireRating').innerHTML = message.payloadString}, 200);
+		};
+		if (message.destinationName=="/software/cfa2mqtt/rating/central/issuedat" ) {
+			setTimeout(function() {document.getElementById('idFireDate').innerHTML = message.payloadString}, 200);
+		};
+		//weather  
+		if (message.destinationName=="/software/bom_forecast2mqtt/forecast/Victoria/Melbourne/fcast_today_temperature") {
+			setTimeout(function() {document.getElementById('idfcast_today_temperature').innerHTML = message.payloadString}, 200);
+		};
+		if (message.destinationName=="/software/bom_forecast2mqtt/forecast/Victoria/Melbourne/fcast_today_precis") {
+			setTimeout(function() {document.getElementById('idfcast_today_precis').innerHTML = message.payloadString}, 200);
+		};
+		if (message.destinationName=="/software/bom_forecast2mqtt/forecast/Victoria/Melbourne/fcast_date") {
+			setTimeout(function() {document.getElementById('idfcast_date').innerHTML = message.payloadString}, 200);
+		};
+		if (message.destinationName=="/software/bom_forecast2mqtt/forecast/Victoria/Melbourne/fcast_time") {
+			setTimeout(function() {document.getElementById('idfcast_time').innerHTML = message.payloadString}, 200);
+		};		
+
+		//deal with xbmc notification messages
+		//
+		if (message.destinationName=="/house/xbmc/all/messages") {
+			try {
+      			var myJSON = JSON.parse(message.payloadString);
+      			//console.log(myJSON.sub); 
+      			//console.log(myJSON.txt);
+      			//console.log(myJSON.img);
+      			var n=myJSON.img.replace("special://masterprofile/","");
+				moveText(myJSON.sub, myJSON.txt);
+				}
+   			catch (e) {
+        		console.log(e);
+        		}
+		}
+	};
+
+// change the LCD color based on the temperature range.
+	function hotorcold(tempMSG,whichGauge) { 
+		if (tempMSG < 18) //cold
+			{
+		    setTimeout(function() {whichGauge.setDesign('blue')}, 200);
+			}
+		else {if (tempMSG > 24.9 && tempMSG < 35)// hot
+			{
+		    setTimeout(function() {whichGauge.setDesign('orange')}, 200);
+			}
+		else {if (tempMSG > 34.9) // very hot
+			{
+		    setTimeout(function() {whichGauge.setDesign('red')}, 200);
+			}
+		else //normal range
+			{
+		    setTimeout(function() {whichGauge.setDesign('white')}, 200);
+			};};};
+	};
+	
+//zero the LCDs, used when connection to the mqtt server fails and on init load
+	function zeroLCDs() {
+	    //zero values
+	    setTimeout(function() {Outside1LCD.setValue(0)}, 200);
+	    setTimeout(function() {MasterLCD.setValue(0)}, 200);
+	    setTimeout(function() {LoungeLCD.setValue(0)}, 200);
+	    setTimeout(function() {KitchenLCD.setValue(0)}, 200);
+	    setTimeout(function() {LexieLCD.setValue(0)}, 200);
+	    //change text on lower right of lcd
+	    setTimeout(function() {Outside1LCD.setLowerRightText('ERROR')}, 200);
+	    setTimeout(function() {MasterLCD.setLowerRightText('ERROR')}, 200);
+	    setTimeout(function() {LoungeLCD.setLowerRightText('ERROR')}, 200);
+	    setTimeout(function() {KitchenLCD.setLowerRightText('ERROR')}, 200);
+	    setTimeout(function() {LexieLCD.setLowerRightText('ERROR')}, 200);
+	};
+
+
+//this will move the top messages down and add the new message to the top
+	function moveText(newSUB, newMSG){
+		//move all the existing notifications down one, last item will be removed
+	    document.getElementById('item6').innerHTML = document.getElementById('item5').innerHTML;
+   	    document.getElementById('item5').innerHTML = document.getElementById('item4').innerHTML;
+	    document.getElementById('item4').innerHTML = document.getElementById('item3').innerHTML;
+	    document.getElementById('item3').innerHTML = document.getElementById('item2').innerHTML;
+	    document.getElementById('item2').innerHTML = document.getElementById('item1').innerHTML;
+	    //by default the notification is a notice
+	    var notifyTYPE = '<div class="alert-box notice">';
+	    //but any CFA ones will be an alert
+	    if (newSUB == 'CFA_Updates') {
+	    	var notifyTYPE = '<div class="alert-box cfaalert">';
+	    }
+	    //mqtt messages will be warning
+	    else if (newSUB == 'MQTT') {
+	    	var notifyTYPE = '<div class="alert-box warning">';
+	    }
+
+	    //now we can display the new notice/alert at the top
+	    document.getElementById('item1').innerHTML = notifyTYPE + '<span>' + newSUB + ': </span>' +newMSG +' </div>';
+
+	};
+
+//create the clock with date/time
+	function date_time(id) {
+        date = new Date;
+        year = date.getFullYear();
+        month = date.getMonth();
+        months = new Array('January', 'February', 'March', 'April', 'May', 'June', 'Jully', 'August', 'September', 'October', 'November', 'December');
+        d = date.getDate();
+        day = date.getDay();
+        days = new Array('Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday');
+        h = date.getHours();
+        if(h<10)
+        {
+                h = "0"+h;
+        }
+        m = date.getMinutes();
+        if(m<10)
+        {
+                m = "0"+m;
+        }
+        s = date.getSeconds();
+        if(s<10)
+        {
+                s = "0"+s;
+        }
+        //result = '<div class="alert-box success">It is <span> '+h+':'+m+':'+s+'</span> on '+days[day]+' '+months[month]+' '+d+' '+year;
+        result = h+':'+m+':'+s+'</p>'+days[day]+' '+months[month]+' '+d+' '+year;
+        document.getElementById(id).innerHTML = result;
+        setTimeout('date_time("'+id+'");','1000');
+        return true;
+		};
+
+//used to hide/display elements, using it to display more LCD's on the one page
+	function toggledisplay(elementID)
+	    {
+	        (function(style) {
+	            style.display = style.display === 'none' ? '' : 'none';
+	        })(document.getElementById(elementID).style);
+	    };
+
+//this is what is loaded when the body of the html has called
+	function init() {
+		//setup LCDs
+		
+		Outside1LCD = new Lcd({
+	        id                    : 'Outside1LCD', 
+	        parentId              :'idOutside1LCD', 
+	        upperCenterText       : 'Outside1',
+	        lowerRightText        : '',
+	        threshold             : 30,
+	        trendVisible          : true,
+	        unitString            : '\u00B0C',
+	        upperLeftTextVisible  : false,
+	        upperRightTextVisible : false,
+	        lowerRightTextVisible : true,
+	        upperCenterTextVisible: true,
+	        lowerCenterTextVisible: false,
+	        unitVisible           : true,
+	        thresholdVisible      : true,
+	        design                 : 'beige', // 'beige', 'green', 'amber', 'standard'
+            crystalEffectVisible   : false,
+            foregroundShadowEnabled: false,
+	        width                 : 200, 
+	        height                : 80});
+
+	    MasterLCD = new Lcd({
+	        id                    : 'MasterLCD', 
+	        parentId              :'idMasterLCD', 
+	        upperCenterText       : 'Master',
+	        lowerRightText        : 'lowerRightText',
+	        threshold             : 23,
+	        trendVisible          : true,
+	        unitString            : '\u00B0C',
+	        upperLeftTextVisible  : false,
+	        upperRightTextVisible : false,
+	        lowerRightTextVisible : true,
+	        upperCenterTextVisible: true,
+	        lowerCenterTextVisible: false,
+	        unitVisible           : true,
+	        thresholdVisible      : false,
+	        design                 : 'beige', // 'beige', 'green', 'amber', 'standard'
+            crystalEffectVisible   : true,
+            foregroundShadowEnabled: false,
+	        width                 : 200, 
+	        height                : 80}); 
+
+	    LoungeLCD = new Lcd({
+	        id                    : 'LoungeLCD', 
+	        parentId              :'idLoungeLCD', 
+	        upperCenterText       : 'Lounge',
+	        lowerRightText        : 'lowerRightText',
+	        threshold             : 23,
+	        trendVisible          : true,
+	        unitString            : '\u00B0C',
+	        upperLeftTextVisible  : false,
+	        upperRightTextVisible : false,
+	        lowerRightTextVisible : true,
+	        upperCenterTextVisible: true,
+	        lowerCenterTextVisible: false,
+	        unitVisible           : true,
+	        thresholdVisible      : false,
+	        design                 : 'beige', // 'beige', 'green', 'amber', 'standard'
+            crystalEffectVisible   : true,
+            foregroundShadowEnabled: false,
+	        width                 : 200, 
+	        height                : 80});
+	  
+	    KitchenLCD = new Lcd({
+	        id                    : 'KitchenLCD', 
+	        parentId              :'idKitchenLCD', 
+	        upperCenterText       : 'Kitchen',
+	        lowerRightText        : 'lowerRightText',
+	        threshold             : 23,
+	        trendVisible          : true,
+	        unitString            : '\u00B0C',
+	        upperLeftTextVisible  : false,
+	        upperRightTextVisible : false,
+	        lowerRightTextVisible : true,
+	        upperCenterTextVisible: true,
+	        lowerCenterTextVisible: false,
+	        unitVisible           : true,
+	        thresholdVisible      : false,
+	        design                 : 'beige', // 'beige', 'green', 'amber', 'standard'
+            crystalEffectVisible   : true,
+            foregroundShadowEnabled: false,
+	        width                 : 200, 
+	        height                : 80}); 
+
+	    LexieLCD = new Lcd({
+	        id                    : 'LexieLCD', 
+	        parentId              :'idLexieLCD', 
+	        upperCenterText       : 'Lexie',
+	        lowerRightText        : 'lowerRightText',
+	        threshold             : 23,
+	        trendVisible          : true,
+	        unitString            : '\u00B0C',
+	        upperLeftTextVisible  : false,
+	        upperRightTextVisible : false,
+	        lowerRightTextVisible : true,
+	        upperCenterTextVisible: true,
+	        lowerCenterTextVisible: false,
+	        unitVisible           : true,
+	        thresholdVisible      : false,
+	        design                 : 'beige', // 'beige', 'green', 'amber', 'standard'
+            crystalEffectVisible   : true,
+            foregroundShadowEnabled: false,
+	        width                 : 200, 
+	        height                : 80});  
+	 
+
+	    //zero the LCD
+	    zeroLCDs();
+
+		//start time/clock
+		date_time("clock");
+		
+		//rotate thru all the temperature ids every 10 seconds
+		setInterval(function(){
+			toggledisplay('idLoungeLCD');
+			toggledisplay('idMasterLCD');
+			toggledisplay('idKitchenLCD');
+			toggledisplay('idLexieLCD');
+		},10000); //miliseconds
+
+		// Connect to MQTT broker
+		client.connect(options);
+	}
+
+    </script>
+</head>
+
+<body onload="init();"><!--Start the javascript ball rolling-->
+
+<div class="wrapper">
+
+	<header class="header">
+	  <table class='headerTable'>
+	   <tr>
+	  	<th>
+	  		<div id="clock" onclick=Javascript:window.open('http://www.localdomain/');></div>
+  		</th>
+
+	  	<td onclick=Javascript:window.open('/peoplestatus/mqtt-people-satus-change.html')>
+	  		<p>Alarm: <span id='idAlaramStatus'></span></p>
+			<p>Matt: <span id='idMattStatus'></span><br>Jo: <span id='idJoStatus'></span></p>
+	    </td>
+	    <td>
+	  		<p onclick=Javascript:window.open('http://www.cfa.vic.gov.au/warnings-restrictions/total-fire-bans-and-ratings/')>CFA lvl: <span id='idFireRating'></span> @<span id='idFireDate'></span> </p>
+	    
+	  		<p onclick=Javascript:window.open('http://www.bom.gov.au/vic/forecasts/melbourne.shtml')>Weather for: <span id='idfcast_date'></span> @<span id='idfcast_time'></span></br>
+	  		<span id='idfcast_today_precis'></span> & top of: <span id='idfcast_today_temperature'></span></p>
+
+	    </td>
+	  </tr>
+	 </table><!-- .headerTable-->
+	</header><!-- .header-->
+	 
+	 <div class="middle">
+        <div class="container">
+			<main class="content">
+		        <p id="item1"></p>
+		        <p id="item2"></p>
+		        <p id="item3"></p>
+		        <p id="item4"></p>
+		        <p id="item5"></p>
+		        <p id="item6"></p>
+			</main><!-- .content -->
+		</div><!-- .container-->
+
+		<aside class="left-sidebar">
+	        <div id='idOutside1LCD' style='padding:5px;' onclick=Javascript:window.open('/temperature/highstock/index_hs_temps.php?interval=1&loco=outside1');></div>
+	        --------------------
+	        <div id='idLoungeLCD' style='display:block; padding:5px;' onclick=Javascript:window.open('/temperature/highstock/index_hs_temps.php?interval=1&loco=lounge');></div>
+	        <div id='idMasterLCD' style='display:block; padding:5px;' onclick=Javascript:window.open('/temperature/highstock/index_hs_temps.php?interval=1&loco=master');></div>
+	        <div id='idKitchenLCD' style='display:none; padding:5px;' onclick=Javascript:window.open('/temperature/highstock/index_hs_temps.php?interval=1&loco=kitchen');></div>
+	        <div id='idLexieLCD' style='display:none; padding:5px;' onclick=Javascript:window.open('/temperature/highstock/index_hs_temps.php?interval=1&loco=lexie');></div>
+        </aside><!-- .left-sidebar -->
+	</div><!-- .middle-->
+
+</div><!-- .wrapper -->  
+
+</body>
+
+</html>

@@ -1,0 +1,120 @@
+/*for ipad/iphone*/
+@media only screen and (min-device-width : 768px) and (max-device-width : 1024px) and (orientation : landscape) and (-webkit-min-device-pixel-ratio: 1)  {
+}
+/*LCD display setup*/
+@font-face {
+    font-family: 'digital-7mono';
+    src: url('digital-7_mono-webfont.eot');
+    src: url('digital-7_mono-webfont.eot?#iefix') format('embedded-opentype'),
+         url('digital-7_mono-webfont.woff') format('woff'),
+         url('digital-7_mono-webfont.ttf') format('truetype'),
+         url('digital-7_mono-webfont.svg#digital-7mono') format('svg');
+    font-weight: normal;
+    font-style: normal;
+}
+
+body {
+    /*margin:50px 0px; padding:0px;*/
+    text-align:center;
+    background: #B2B2B2;
+    display   : block;
+}
+
+/*page content wrapper, ie, header/sidebar/content */
+.wrapper {
+    width: 1000px;
+    margin: 0 auto;
+}
+/* Header
+-----------------------------------------------------------------------------*/
+.header {
+    height: 120px;
+}
+.headerTable {
+    width:100%;
+    color:#555;
+    border-radius:10px;
+    font-family:Tahoma,Geneva,Arial,sans-serif;font-size:14px;
+    font-weight:bold;
+    /*padding:10px 8px;
+    margin:10px;*/
+    background:#e9ffd9;
+    border:1px solid #a6ca8a;
+    table-layout:auto;
+}
+
+.headerTable span {
+    font-weight:normal;
+
+/* Specific ID tag color settings*/
+}
+#idFireRating {
+    color:#FF0000;
+    font-weight:bold;
+}
+
+#idAlaramStatus {
+    color:#FF0000;
+    font-weight:bold;
+}
+
+/* Left Sidebar
+-----------------------------------------------------------------------------*/
+.left-sidebar {
+    float: left;
+    width: 200px;
+    margin-left: -100%;
+    position: relative;
+}
+
+/* Middle content
+-----------------------------------------------------------------------------*/
+.middle {
+    width: 100%;
+    position: relative;
+}
+.middle:after {
+    display: table;
+    clear: both;
+    content: '';
+}
+.container {
+    width: 100%;
+    float: left;
+    overflow: hidden;
+}
+.content {
+    padding: 0 0 0 240px;
+}
+
+/* alert/notification boxes
+-----------------------------------------------------------------------------*/
+.alert-box {
+    color:#555;
+    border-radius:10px;
+    font-family:Tahoma,Geneva,Arial,sans-serif;font-size:14px;
+    padding:10px 80px;
+    /*margin:10px;*/
+}
+.alert-box span {
+    font-weight:bold;
+    text-transform:uppercase;
+}
+.cfaalert {
+    background:#ffecec url('../images/cfalogo.gif') no-repeat 10px 50%;
+    border:1px solid #f5aca6;
+    padding:15px 80px;
+
+}
+.success {
+    background:#e9ffd9 url('../images/success.png') no-repeat 25px 50%;
+    border:3px solid #a6ca8a;
+}
+.warning {
+    background:#fff8c4 url('../images/warning.png') no-repeat 25px 50%;
+    border:1px solid #f2c779;
+}
+.notice {
+    background:#e3f7fc url('../images/notice.png') no-repeat 25px 50%;
+    border:1px solid #8ed9f6;
+}
